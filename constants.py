@@ -8,6 +8,11 @@ PERMISSION_MODES = {
     "opencode": ["default", "yolo"],
 }
 
+# Codex 专用协作模式
+COLLABORATION_MODES = {
+    "codex": ["default", "plan"],
+}
+
 # Claude 可用的模型模式
 MODEL_MODES = ["default", "sonnet", "opus"]
 

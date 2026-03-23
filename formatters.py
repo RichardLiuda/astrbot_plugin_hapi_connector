@@ -730,6 +730,7 @@ KNOWN_HAPI_SUBCOMMANDS = {
     "msg", "messages",
     "to",
     "perm",
+    "plan",
     "model",
     "remote",
     "output", "out",
@@ -962,6 +963,13 @@ HELP_COMMANDS = [
         "usage": "/hapi perm [模式]",
         "summary": "查看或切换权限模式（未绑定时回退默认窗口）",
         "example": None,
+        "home": True,
+    },
+    {
+        "topic": "config",
+        "usage": "/hapi plan [on|off]",
+        "summary": "查看或切换 Codex Plan 模式（仅 remote Codex 会话）",
+        "example": "/hapi plan on",
         "home": True,
     },
     {

@@ -229,6 +229,7 @@ hapi codex    # Open Codex
 | 指令 | 说明 |
 |------|------|
 | `/hapi perm [模式]` | 查看/切换权限模式（不带参数则交互选择） |
+| `/hapi plan [on\|off]` | 查看/切换 Codex Plan 模式（仅 remote Codex 会话） |
 | `/hapi model [模式]` | 查看/切换模型（仅 Claude，不带参数则交互选择） |
 | `/hapi output [级别]` | 查看/切换 SSE 推送级别（别名 `out`） |
 | `/hapi help [主题]` | 显示帮助信息，主题可选：会话 / 对话 / 审批 / 通知 / 文件 / 配置 |
@@ -254,6 +255,11 @@ hapi codex    # Open Codex
 | Codex | `default` / `read-only` / `safe-yolo` / `yolo` |
 | Gemini | `default` / `read-only` / `safe-yolo` / `yolo` |
 | OpenCode | `default` / `yolo` |
+
+> 说明：
+> - Codex 的 Plan 模式属于 collaboration mode，不属于 permission mode。
+> - 插件通过 `/api/sessions/{sid}/collaboration-mode` 切换 Codex Plan 模式。
+> - 仅 remote Codex session 支持 `/hapi plan`；如果切换失败，请先执行 `/hapi remote`。
 
 ---
 ---

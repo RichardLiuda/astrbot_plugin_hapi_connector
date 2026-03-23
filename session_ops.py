@@ -73,6 +73,28 @@ async def set_permission_mode(client: AsyncHapiClient, sid: str, mode: str) -> t
         return False, f"切换失败: {resp.status} {body[:200]}"
 
 
+async def set_collaboration_mode(client: AsyncHapiClient, sid: str, mode: str) -> tuple[bool, str]:
+    """设置协作模式（仅 Codex，支持 default / plan）"""
+    resp = await client.post(f"/api/sessions/{sid}/collaboration-mode", json={"mode": mode})
+    if resp.ok:
+        resp.release()
+        if mode == "plan":
+            return True, "Codex 已切换到 Plan 模式"
+        return True, f"Codex 协作模式已切换为: {mode}"
+
+    body = await resp.text()
+    status = resp.status
+    resp.release()
+
+    if status == 409:
+        return False, "切换失败：仅 remote Codex session 支持 Plan 模式，请先执行 /hapi remote"
+    if status == 400:
+        return False, f"切换失败：mode 非法或当前 agent 不支持 ({mode})"
+    if status == 404:
+        return False, "切换失败：session 不存在或 HAPI 版本过旧"
+    return False, f"切换失败: {status} {body[:200]}"
+
+
 async def set_model_mode(client: AsyncHapiClient, sid: str, model: str) -> tuple[bool, str]:
     """设置模型模式（仅 Claude）"""
     resp = await client.post(f"/api/sessions/{sid}/model", json={"model": model})

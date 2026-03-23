@@ -48,6 +48,7 @@ class CommandHandlers:
             "messages": (self.cmd_msg, True),
             "to": (self.cmd_to, True),
             "perm": (self.cmd_perm, True),
+            "plan": (self.cmd_plan, True),
             "model": (self.cmd_model, True),
             "remote": (self.cmd_remote, False),
             "output": (self.cmd_output, True),
@@ -289,6 +290,10 @@ class CommandHandlers:
         modes = PERMISSION_MODES.get(flavor, ["default"])
 
         if mode:
+            requested_mode = mode.strip().lower()
+            if flavor == "codex" and requested_mode == "plan":
+                yield event.plain_result("Codex 的 plan 不是 permission mode，请使用：/hapi plan on")
+                return
             target = mode
             if mode.isdigit() and 1 <= int(mode) <= len(modes):
                 target = modes[int(mode) - 1]
@@ -329,6 +334,56 @@ class CommandHandlers:
                 yield event.plain_result("操作超时，已取消")
             finally:
                 event.stop_event()
+
+    async def cmd_plan(self, event: AstrMessageEvent, argument: str = ""):
+        """查看/切换 Codex Plan 模式: /hapi plan [on|off]"""
+        await self.state_mgr.set_user_state(event)
+        sid = self.state_mgr.effective_sid(event)
+        if not sid:
+            yield event.plain_result("请先用 /hapi sw <序号> 选择一个 session")
+            return
+
+        try:
+            detail = await session_ops.fetch_session_detail(self.client, sid)
+        except Exception as e:
+            yield event.plain_result(f"获取 session 详情失败: {e}")
+            return
+
+        metadata = detail.get("metadata", {}) or {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+        flavor = str(
+            metadata.get("flavor")
+            or detail.get("flavor")
+            or detail.get("agent")
+            or ""
+        ).strip().lower()
+
+        if flavor != "codex":
+            yield event.plain_result("Plan 模式只对 Codex 会话可用")
+            return
+
+        raw = (argument or "").strip().lower()
+        if not raw:
+            yield event.plain_result(
+                "Codex Plan 模式命令：\n"
+                "/hapi plan on  - 切到 Plan 模式\n"
+                "/hapi plan off - 切回 default 模式\n\n"
+                "注意：仅 remote Codex 会话支持。\n"
+                "如果切换失败，请先执行 /hapi remote"
+            )
+            return
+
+        if raw in ("on", "plan", "enable", "1"):
+            target_mode = "plan"
+        elif raw in ("off", "default", "disable", "0"):
+            target_mode = "default"
+        else:
+            yield event.plain_result("参数错误，请使用：/hapi plan [on|off]")
+            return
+
+        ok, msg = await session_ops.set_collaboration_mode(self.client, sid, target_mode)
+        yield event.plain_result(msg)
 
     # ── model ──
 
