@@ -365,7 +365,13 @@ class CommandHandlers:
 
         raw = (argument or "").strip().lower()
         if not raw:
+            current_mode = session_ops.extract_collaboration_mode(detail)
+            if current_mode:
+                status_line = f"当前协作模式: {current_mode}"
+            else:
+                status_line = "当前协作模式: (HAPI 未返回 collaborationMode，暂时无法确认)"
             yield event.plain_result(
+                f"{status_line}\n\n"
                 "Codex Plan 模式命令：\n"
                 "/hapi plan on  - 切到 Plan 模式\n"
                 "/hapi plan off - 切回 default 模式\n\n"

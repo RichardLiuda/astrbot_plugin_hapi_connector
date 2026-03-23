@@ -371,6 +371,8 @@ def format_session_list(
 def format_session_status(s: dict) -> str:
     """格式化单个 session 状态"""
     meta = s.get("metadata", {})
+    if not isinstance(meta, dict):
+        meta = {}
     sid = s.get("id", "?")
     flavor = meta.get("flavor", "?")
     path = meta.get("path", "?")
@@ -379,6 +381,14 @@ def format_session_status(s: dict) -> str:
     perm = s.get("permissionMode", "default")
     model = s.get("modelMode", "default")
     summary = (meta.get("summary") or {}).get("text", "(无标题)")
+    agent_state = s.get("agentState", {}) or {}
+    if not isinstance(agent_state, dict):
+        agent_state = {}
+    collaboration = (
+        s.get("collaborationMode")
+        or meta.get("collaborationMode")
+        or agent_state.get("collaborationMode")
+    )
 
     lines = [
         f"Session:  {sid[:8]}...",
@@ -390,6 +400,8 @@ def format_session_status(s: dict) -> str:
         f"权限模式: {perm}",
         f"模型:     {model}",
     ]
+    if flavor == "codex" or collaboration:
+        lines.append(f"协作模式: {collaboration or '(HAPI 未返回)'}")
     return "\n".join(lines)
 
 

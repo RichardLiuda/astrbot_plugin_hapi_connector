@@ -3,6 +3,26 @@
 from .hapi_client import AsyncHapiClient
 
 
+def extract_collaboration_mode(detail: dict) -> str | None:
+    """从 session 详情中提取协作模式。"""
+    metadata = detail.get("metadata", {}) or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    agent_state = detail.get("agentState", {}) or {}
+    if not isinstance(agent_state, dict):
+        agent_state = {}
+
+    for value in (
+        detail.get("collaborationMode"),
+        metadata.get("collaborationMode"),
+        agent_state.get("collaborationMode"),
+    ):
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
 async def fetch_sessions(client: AsyncHapiClient) -> list[dict]:
     """获取所有 session 列表"""
     resp = await client.get("/api/sessions")
@@ -78,9 +98,25 @@ async def set_collaboration_mode(client: AsyncHapiClient, sid: str, mode: str) -
     resp = await client.post(f"/api/sessions/{sid}/collaboration-mode", json={"mode": mode})
     if resp.ok:
         resp.release()
+        try:
+            detail = await fetch_session_detail(client, sid)
+        except Exception as e:
+            if mode == "plan":
+                return True, f"Codex 已请求切换到 Plan 模式，但暂时无法验证当前状态: {e}"
+            return True, f"Codex 协作模式切换请求已发送，但暂时无法验证当前状态: {e}"
+
+        current_mode = extract_collaboration_mode(detail)
+        if not current_mode:
+            if mode == "plan":
+                return True, "Codex 已请求切换到 Plan 模式，但当前 HAPI 未返回 collaborationMode，暂时无法确认是否真正生效"
+            return True, "Codex 协作模式切换请求已发送，但当前 HAPI 未返回 collaborationMode，暂时无法确认是否真正生效"
+
+        if current_mode != mode:
+            return False, f"切换请求已发送，但当前协作模式仍为: {current_mode}，未确认切换到 {mode}"
+
         if mode == "plan":
             return True, "Codex 已切换到 Plan 模式"
-        return True, f"Codex 协作模式已切换为: {mode}"
+        return True, f"Codex 协作模式已切换为: {current_mode}"
 
     body = await resp.text()
     status = resp.status
